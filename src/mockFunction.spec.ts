@@ -13,8 +13,40 @@ import { obj } from "./toHaveBeenCalled";
  * (2) mockReset: mockClear + mockImplementation 내부 빈 함수화(() => {})
  * (3) mockRestore: spy함수 제거 (테스트하고자 하는 함수로 돌아감)
  */
+
+/** !!JS 스코프 개념을 따르기에 테스트 라이프사이클 메서드 사용에 주의 */
+let spyFn;
+
+/** test 그룹화
+ * describe 내부 test에 대해서만 실행됨
+ */
+describe("beforeEach/afterEach 적용", () => {
+  beforeEach(() => {
+    console.log("그룹화 beforeEach");
+  });
+
+  afterEach(() => {
+    console.log("그룹화 afterEach");
+  });
+
+  test("obj.minus 함수에 스파이를 심고 리턴값을 임의로 변경할 수 있다", () => {
+    spyFn = jest.spyOn(obj, "minus").mockImplementation((a, b) => 3);
+    const result = obj.minus(1, 2);
+
+    expect(obj.minus).toHaveBeenCalledTimes(1);
+    expect(result).toBe(3);
+
+    /**
+     * spy 함수 제거
+     * !! mockReset 실행 시, 다음 테스트에서 실패하는 이유
+     * !! 기존 테스트 함수로 돌아가지 않고 () => {} 를 실행하기 때문에 result3의 결과가 undefined
+     */
+    // spyFn.mockRestore();
+  });
+});
+
 test("obj.minus 함수에 스파이를 심고 리턴값을 임의로 변경할 수 있다", () => {
-  const spyFn = jest.spyOn(obj, "minus").mockImplementation((a, b) => 3);
+  spyFn = jest.spyOn(obj, "minus").mockImplementation((a, b) => 3);
   const result = obj.minus(1, 2);
 
   expect(obj.minus).toHaveBeenCalledTimes(1);
@@ -25,11 +57,11 @@ test("obj.minus 함수에 스파이를 심고 리턴값을 임의로 변경할 �
    * !! mockReset 실행 시, 다음 테스트에서 실패하는 이유
    * !! 기존 테스트 함수로 돌아가지 않고 () => {} 를 실행하기 때문에 result3의 결과가 undefined
    */
-  spyFn.mockRestore();
+  // spyFn.mockRestore();
 });
 
 test("obj.minus 함수에 스파이를 심고 딱 한 번 리턴값을 변경하는 메서드를 여러 번 사용할 수 있다", () => {
-  const spyFn = jest
+  spyFn = jest
     .spyOn(obj, "minus")
     .mockImplementationOnce((a, b) => a + b)
     .mockImplementationOnce(() => 5);
@@ -45,7 +77,7 @@ test("obj.minus 함수에 스파이를 심고 딱 한 번 리턴값을 변경하
   expect(obj.minus).toHaveBeenCalledTimes(3);
 
   // 테스트 함수로 돌아감
-  spyFn.mockRestore();
+  // spyFn.mockRestore();
 });
 
 test("obj.minus 함수에 스파이를 심고 마지막 리턴값만 지정할 수 있다", () => {
@@ -57,3 +89,37 @@ test("obj.minus 함수에 스파이를 심고 마지막 리턴값만 지정할 �
   expect(result).not.toBe(3);
   expect(result).toBe(-1);
 });
+
+/** 모든 테스트 실행 전에(파일 단위)
+ * ex/ DB연결
+ */
+beforeAll(() => {
+  console.log("이 파일의 준비사항 실행");
+});
+
+/** 각 테스트 실행 전에
+ * ex/ 변수 초기화
+ */
+beforeEach(() => {
+  console.log("각 테스트 전에 실행");
+});
+
+/** 각 테스트 실행 후에
+ * ex/ 정리할 때 (mockRestore)
+ */
+afterEach(() => {
+  console.log("각 테스트 후에 실행");
+  spyFn.mockRestore();
+  // jest.restoreAllMocks(); 상위에 선언하고 사용할 필요없이 생성한 spy mock 제거 가능
+});
+
+/** 모든 테스트 실행 후에(파일 단위)
+ * ex/ DB 얀걀 해제, 서버 연결 해제 등 beforeAll에서 했던 작업 해제
+ */
+afterAll(() => {
+  console.log("모든 테스트 종료 후에 실행");
+});
+
+/** 테스트 미루기 */
+test.todo("나중에 만들 예정");
+describe.skip("나중에 만들 예정", () => {});
